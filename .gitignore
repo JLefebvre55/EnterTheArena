@@ -50,3 +50,12 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+# Include main executable
+!eta.exe
+
+.vscode
+**/.DS_Store
+
+; Docx stuff
+~$README.docx
