@@ -60,6 +60,6 @@ dkms.conf
 ; Docx stuff
 ~$README.docx
 
-SAVE0.txt
-SAVE1.txt
-SAVE2.txt
+SAVE0.TXT
+SAVE1.TXT
+SAVE2.TXT
