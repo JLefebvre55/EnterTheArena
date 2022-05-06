@@ -57,7 +57,7 @@ dkms.conf
 .vscode
 **/.DS_Store
 
-; Docx stuff
+# Docx stuff
 ~$README.docx
 
 SAVE0.TXT
