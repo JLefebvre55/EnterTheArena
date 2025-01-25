@@ -18,7 +18,7 @@ void getch(void) {
 // delay (ms)
 void delay(unsigned int millis) {
   time_t start_time = clock();
-  while (clock() < (start_time + millis));
+  while (true) { if (clock() > start_time + millis) { break; } }
 }
 
 // sleep (seconds)

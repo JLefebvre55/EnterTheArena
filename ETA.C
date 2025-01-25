@@ -600,10 +600,9 @@ int deleteSave(Player& savegame) {
 
 	d = fopen(filename, "w");  /** open and empty the file **/
 
-	r = fprintf(d, "null 0 0 0 0\n");      /** output "null player" (deleted) **/
+	fprintf(d, "null 0 0 0 0\n");      /** output "null player" (deleted) **/
 
-	fclose(d); /** close file **/
-	return r;
+	return fclose(d); /** close file **/
 }
 
 /**
@@ -619,9 +618,9 @@ int saveGame(Player& savegame) {
 	save = fopen(filename, "w");    /** open and empty the save file **/
 
 	/** output player info **/
-	r = fprintf(save, "%s %d %d %d %d\n", savegame.name, savegame.level, savegame.gold, savegame.healthpotions, savegame.manapotions);
+	fprintf(save, "%s %d %d %d %d\n", savegame.name, savegame.level, savegame.gold, savegame.healthpotions, savegame.manapotions);
 
-	fclose(save);   /** close file **/
+	r = fclose(save);   /** close file **/
 	return r;
 }
 
@@ -678,9 +677,9 @@ int parseSave(Player& player){
 
 	temp = fopen(filename, "r+");
 
-	r = fscanf(temp, "%s %d %d %d %d", player.name, &player.level, &player.gold, &player.healthpotions, &player.manapotions);
+	fscanf(temp, "%s %d %d %d %d", player.name, &player.level, &player.gold, &player.healthpotions, &player.manapotions);
 
-	fclose(temp);
+	r = fclose(temp);
 
 	return r;
 }
