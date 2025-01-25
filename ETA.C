@@ -7,66 +7,75 @@
  */
 
 /**INCLUDES**/
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <time.h>
-#include <conio.h>
+#include "ETA.H"
 
 /**MACROS**/
 #define NUM_SAVES 3
 #define MAX_NAME 40
-#define ATTACKS 3
-#define ENEMIES 11
+#define NUM_ATTACKS 3
+#define NUM_ENEMIES 11
+#define STR_SAVEFILE "SAVE%d.TXT"
+#define STR_LINEBREAK "-----------------------------------------------------------------------------\n"
 
-/**TYPEDEFS**/
-typedef struct {
-	int slot;
-	char name[MAX_NAME+1];
-	int level;
-	int gold;
-	int health;
-	int maxhealth;
-	int mana;
-	int maxmana;
-	int healthpotions;
-	int manapotions;
-	int maxdamage;
-	int mindamage;
-} PlayerState;
+/** DECLARATIONS **/
 
+// PLAYER STATE
+typedef struct {
+	unsigned int slot; // Save slot
+	char name[MAX_NAME+1];
+	unsigned int level;
+	unsigned int gold;
+
+	unsigned int health;
+	unsigned int maxhealth;
+
+	unsigned int mana;
+	unsigned int maxmana;
+
+	unsigned int healthpotions;
+	unsigned int manapotions;
+
+	unsigned int maxdamage;
+	unsigned int mindamage;
+} Player;
+
+// ENEMY STATE
 typedef struct {
 	char name[MAX_NAME+1];
-	int level;
-	int health;
-	int maxhealth;
-	char attacks[ATTACKS][MAX_NAME + 1];
-	int maxdamage;
-	int mindamage;
+	unsigned int level;
+
+	unsigned int health;
+	unsigned int maxhealth;
+
+	char attacks[NUM_ATTACKS][MAX_NAME + 1];
+	unsigned int maxdamage;
+	unsigned int mindamage;
 } Enemy;
 
-/**FUNCTION INITIALIZERS**/
-PlayerState loadMenu(void);
-PlayerState parseSave(int saveselect);
-void deleteSave(PlayerState savegame);
-void saveGame(PlayerState savegame);
+// File I/O
+int parseSave(Player& player); 
+int deleteSave(Player& savegame);
+int saveGame(Player& savegame);
+
+// Game States
+void initPlayer(Player& player);
 Enemy parseEnemy(int playerlevel);
-PlayerState startArena(PlayerState player);
-void br(void);
-PlayerState initPlayer(PlayerState player);
-PlayerState shop(PlayerState player);
+
+// Game Menues
+Player loadMenu(void); // Main menu; returns selected player (fetched from save file slot)
+int startArena(Player& player);
+Player shop(Player player);
 
 /**MAIN**/
 int main(void) {
-	PlayerState player;
+	Player player; int r;
 	srand(time(NULL)); /** seed the RNG **/
 
 	while(1){
 
 		/** Print title **/
 		clrscr();
-		br();
+		printf(STR_LINEBREAK);
 		printf(
 				"\n _____      _            _____ _             ___                       \n"
 				"|  ___|    | |          |_   _| |           / _ \\                      \n"
@@ -74,7 +83,7 @@ int main(void) {
 				"|  __| '_ \\| __/ _ \\ '__| | | | '_ \\ / _ \\ |  _  | '__/ _ \\ '_ \\ / _` |\n"
 				"| |__| | | | ||  __/ |    | | | | | |  __/ | | | | | |  __/ | | | (_| |\n"
 				"\\____/_| |_|\\__\\___|_|    \\_/ |_| |_|\\___| \\_| |_/_|  \\___|_| |_|\\__,_|\n\n");
-		br();
+		printf(STR_LINEBREAK);
 
 		/** cool intro sounds **/
 		sound(262);
@@ -94,21 +103,23 @@ int main(void) {
 
 		/** Get player values **/
 		player = loadMenu();
-		player = initPlayer(player);    /** Initialize player values **/
+		initPlayer(player); // reset
 
 		if(player.level == 1){	/** if new player, run tutorial **/
 			clrscr();
-			br();
+			printf(STR_LINEBREAK);
 			printf("\t\t\t\tINTRO\n");
-			br();
+			printf(STR_LINEBREAK);
 			printf(	"You awaken in a small dungeon cell. The floor is a cold cobblestone. \nDry, yet bone-chilling. A dim light slips through a small barred window.\n\n\"Speaking of bone-chilling...\"\nyou mutter, noticing the "
 					"skeleton sitting upright against the cell wall.\n\nIn his undead hands, he grasps a shining sword and a leather-bound spellbook.\n"
 					"You take them, and as you exit through the open cell door, you hear a BOOM!, \nfollowed by a feral roar in the distance.\n\n"
 					"You emerge into what seems to be an empty Roman-style ampitheater, and you are \ngreeted by a roaring crowd.\n");
-			printf("Press any key to continue...");
 			getch();
-			player = startArena(player);
-			player = initPlayer(player);
+			
+			// DO ARENA
+			startArena(player);
+
+			initPlayer(player); // reset
 		}
 
 		while (1) { /** MAIN GAME STATE LOOP **/
@@ -116,9 +127,9 @@ int main(void) {
 
 			/** Get player input **/
 			clrscr();
-			br();
+			printf(STR_LINEBREAK);
 			printf("\t\t\t\tMENU\n");
-			br();
+			printf(STR_LINEBREAK);
 			printf("\nReady up, %s! What would you like to do?\n"
 					"\t1. Enter the Arena!\n"
 					"\t2. Go to Shop\n"
@@ -131,10 +142,12 @@ int main(void) {
 
 			} while (choice < 1 || choice > 5);
 
-			if(choice == 1){        /** Enter Arena **/
-				player = startArena(player);
-				player = initPlayer(player);    /** Re-initialize player values **/
+			if(choice == 1){
 
+				// DO ARENA
+				r = startArena(player);
+
+				initPlayer(player); // reset
 
 				printf("You have exited the arena.\n");
 				sleep(2);
@@ -142,15 +155,14 @@ int main(void) {
 				player = shop(player);
 			} else if (choice == 3){		/**Print stats**/
 				clrscr();
-				br();
+				printf(STR_LINEBREAK);
 				printf("\t\t\t\t%s's STATS\n", player.name);
-				br();
+				printf(STR_LINEBREAK);
 				printf("Max Health\t\t%d\nMax Mana\t\t%d\nEnemies Obliterated\t%d\nCoins Grabbed\t\t%d\nCool Factor\t\t%d\n\n", player.maxhealth, player.maxmana, player.level, player.gold, rand()%1000);
-				printf("Press any key to continue...");
 				getch();
 			}else if(choice == 4){         /** Save Game **/
 				printf("Saving...\n");
-				saveGame(player);
+				while(saveGame(player)); // try save until return 0
 				sleep(1);
 				printf("Game saved successfully.\n");
 				sleep(1);
@@ -158,17 +170,17 @@ int main(void) {
 				char save; /** Save? **/
 
 				clrscr();
-				br();
+				printf(STR_LINEBREAK);
 				printf("\t\t\t\tQUIT\n");
-				br();
-				printf("\nSave before quitting? You will lose all unsaved progress! Y/N\n");
+				printf(STR_LINEBREAK);
+				printf("\n'Shouldn't I SAVE before quitting? I will lose all unsaved progress!' [Y/N]\n");
 				do{
 					printf(">");
 					scanf(" %c", &save);
 				} while (save != 'Y' && save != 'N' && save != 'y' && save != 'n');
 				if(save == 'Y' || save == 'y'){
 					printf("Saving...\n");
-					saveGame(player);
+					while(saveGame(player)); // try save until return 0
 					sleep(1);
 					printf("Game saved successfully.\n");
 					sleep(1);
@@ -186,7 +198,7 @@ int main(void) {
 /**
  * Shop menu
  */
-PlayerState shop(PlayerState player){
+Player shop(Player player){
 
 	clrscr();
 	printf("Welcome to the Shop!");
@@ -204,9 +216,9 @@ PlayerState shop(PlayerState player){
 		int choice;
 
 		clrscr();
-		br();
+		printf(STR_LINEBREAK);
 		printf("\t\tSHOP\n");
-		br();
+		printf(STR_LINEBREAK);
 		/** Get player input **/
 		printf("\nWhat would you like to do? You have %d Gold.\n"
 				"\t1. Buy Health Potion - Full HP - 10 Gold\n"
@@ -224,17 +236,17 @@ PlayerState shop(PlayerState player){
 			if(player.gold >=10){
 				player.healthpotions++;
 				player.gold-=10;
-				printf("You bought a health potion! You now have %d.\n", player.healthpotions);
+				printf("'I now have %d health potions.'\n", player.healthpotions);
 			} else {
-				printf("Not enough gold!\n");
+				printf("'I don't have enough gold...'\n");
 			}
 		} else if(choice == 2){         /** Mana potion **/
 			if(player.gold >=5){
 				player.manapotions++;
 				player.gold-=5;
-				printf("You bought a mana potion! You now have %d.\n", player.manapotions);
+				printf("'I now have %d mana potions.'\n", player.manapotions);
 			} else {
-				printf("Not enough gold!\n");
+				printf("'I don't have enough gold...'\n");
 			}
 		} else if(choice == 3){         /** Scratch Card **/
 			if(player.gold >=5){
@@ -247,24 +259,24 @@ PlayerState shop(PlayerState player){
 				x = rand()%3;
 				y = rand()%3;
 				z = rand()%3;
-				printf(x == 0 ? "Gold... " : x == 1 ? "Dragon... " : "Sword... ");
+				printf(x == 0 ? "'Gold... " : x == 1 ? "Dragon... " : "Sword... ");
 				fflush(stdout);
 				sleep(1);
 				printf(y == 0 ? "Gold... " : y == 1 ? "Dragon... " : "Sword... ");
 				fflush(stdout);
 				sleep(1);
-				printf(z == 0 ? "Gold!\n" : z == 1 ? "Dragon!\n" : "Sword!\n");
+				printf(z == 0 ? "Gold!'\n" : z == 1 ? "Dragon!'\n" : "Sword!'\n");
 				sleep(1);
 
 				/** Check for combos. 2 gold = 10, 3 gold = 20 **/
 				if(x == 0 && y == 0 && z == 0){
 					player.gold += 25;
-					printf("Three Golds! Score! You win 20 gold.\n");
+					printf("'Three Golds! Score!!! I won 20 gold.'\n");
 				} else if ((x == 0 && y == 0) || (y == 0 && z == 0) || (x == 0 && z == 0)){
 					player.gold += 15;
-					printf("Two Golds! You win 10 gold.\n");
+					printf("'Two Golds! I won 10 gold.'\n");
 				} else {
-					printf("Aw dangit. Lost again.\n");
+					printf("'Aw dangit... I Lost again.'\n");
 				}
 
 
@@ -272,7 +284,7 @@ PlayerState shop(PlayerState player){
 				printf("Not enough gold!\n");
 			}
 		} else if (choice == 4){        /** Exit **/
-			printf("Thank you, come again!\n");
+			printf("Thank you; come again!\n");
 			sleep(2);
 			break;
 		}
@@ -285,7 +297,7 @@ PlayerState shop(PlayerState player){
 /**
  * ARENA TIME!!
  */
-PlayerState startArena(PlayerState player){
+int startArena(Player& player){
 	Enemy enemy;
 	clrscr();
 	printf("Welcome to the Arena, %s.\n\n", player.name);
@@ -310,9 +322,9 @@ PlayerState startArena(PlayerState player){
 
 			/** STATUS HEADER **/
 			clrscr();
-			br();
+			printf(STR_LINEBREAK);
 			printf("| LVL %d PLAYER - HP: %d/%d, MANA: %d/%d\t|\tLVL %d ENEMY - HP:%d/%d |\n", player.level, player.health, player.maxhealth, player.mana, player.maxmana, enemy.level, enemy.health, enemy.maxhealth);
-			br();
+			printf(STR_LINEBREAK);
 
 			printf("\n");
 
@@ -394,9 +406,8 @@ PlayerState startArena(PlayerState player){
 				}
 				printf("You fled, dropping %d gold in the process.\n", droppedgold);
 				player.gold -= droppedgold;
-				printf("Press any key to continue...");
 				getch();
-				return player;
+				return 2;
 			}
 			sleep(1);
 
@@ -406,7 +417,6 @@ PlayerState startArena(PlayerState player){
 			player.gold+= gold;
 			player.level++;
 			printf("You defeated the %s! You picked up %d gold and leveled up.\nYou are now level %d, and have %d max health and %d max mana.\n", enemy.name, gold, player.level, player.maxhealth, player.maxmana);
-			printf("Press any key to continue...\n\n");
 			getch();
 			break;
 		}else{
@@ -416,7 +426,7 @@ PlayerState startArena(PlayerState player){
 			damage = rand()%(enemy.maxdamage-enemy.mindamage+1)+enemy.mindamage;
 			player.health-= damage;
 
-			printf("%s used %s! You took %d damage.\n", enemy.name, enemy.attacks[rand()%ATTACKS], damage);
+			printf("%s used %s! You took %d damage.\n", enemy.name, enemy.attacks[rand()%NUM_ATTACKS], damage);
 			sleep(1);
 			if(player.health <=0){  /** if player dead, drop 5>=x>=1 gold and return to menu**/
 				int droppedgold = rand()%5+1;
@@ -426,21 +436,21 @@ PlayerState startArena(PlayerState player){
 				player.gold-=droppedgold;
 				printf("You have been defeated by the %s... You lose %d gold.\n", enemy.name, droppedgold);
 				sleep(2);
-				break;
+				return 1;
 			}
 			sleep(1);
 		}
 	}
-	return player;
+	return 0;
 }
 
 /**
  * Load menu
  */
-PlayerState loadMenu(void) {
+Player loadMenu(void) {
 	while (1) { /**Loops until game is started**/
-		int saveselect, i;
-		PlayerState selected;
+		int r, i;
+		Player selected; selected.slot = -1;
 
 		clrscr();
 
@@ -449,9 +459,13 @@ PlayerState loadMenu(void) {
 
 		printf("MAIN MENU\n\nChoose save slot:\n");
 
-
 		for (i=0; i < NUM_SAVES; i++) { /** output all saves **/
-			PlayerState temp = parseSave(i);
+			Player temp; temp.slot = i;
+			r = parseSave(temp);
+			if(r != 0) { // Fail
+				printf("%i: %s\n", i, (r == 1 ? "ENOENT" : "EINVAL"));
+				continue;
+			}
 
 			if (strcmp(temp.name, "null")==0) {
 				printf("%i: Empty Save Slot\n", i);
@@ -459,16 +473,20 @@ PlayerState loadMenu(void) {
 				printf("%i: %s's Game. Level %i.\n", i, temp.name, temp.level);
 			}
 		}
-		do{
+
+		do {
 			printf(">");
-			scanf("%d", &saveselect);
+			scanf("%d", &(selected.slot));
 
-		} while (saveselect < 0 || saveselect >= NUM_SAVES);
+		} while (selected.slot < 0 || selected.slot >= NUM_SAVES);
 
-		selected = parseSave(saveselect);       /** get selected save **/
-		selected.slot = saveselect;
+		r = parseSave(selected);       /** get selected save **/
+		if(r != 0) { // Fail
+			printf((r == 1 ? "ENOENT" : "EINVAL"));
+			continue;
+		}
 
-		if (strcmp(selected.name, "null") !=0){ /** if non-empty save,**/
+		if (strcmp(selected.name, "null") !=0) { /** if non-empty save,**/
 
 			int choice;
 			clrscr();
@@ -478,8 +496,8 @@ PlayerState loadMenu(void) {
 					"\t2. Erase\n"
 					"\t3. Rename\n"
 					"\t4. Go Back\n",
-					saveselect);
-			do{
+					(selected.slot));
+			do {
 				printf(">");
 				scanf("%d", &choice);
 
@@ -495,7 +513,7 @@ PlayerState loadMenu(void) {
 
 				char answer;
 				/** confirm action **/
-				printf("\nAre you sure you would like to erase %s's Game in slot %i? Y/N\n"
+				printf("\nAre you sure you would like to erase %s's Game in slot %i? [Y/N]\n"
 						"*THIS ACTION CANNOT BE UNDONE*\n",
 						selected.name, selected.slot);
 				do{
@@ -511,7 +529,7 @@ PlayerState loadMenu(void) {
 			}
 			else if (choice == 3) { /** rename save **/
 
-				char newname[MAX_NAME+1];
+				char newname[MAX_NAME+1] = { '\0' };
 				char answer;
 
 				/** take user input **/
@@ -519,11 +537,11 @@ PlayerState loadMenu(void) {
 				do{
 					printf(">");
 
-					scanf("%s", newname);
-				}while(newname == NULL);
+					scanf(" %s", newname);
+				}while(newname[0] == '\0');
 
 				/** confirm user input **/
-				printf("\nWould you like to rename this save to %s? Y/N\n", newname);
+				printf("\nWould you like to rename this save to %s? [Y/N]\n", newname);
 
 				do{
 					printf(">");
@@ -533,7 +551,7 @@ PlayerState loadMenu(void) {
 				if (answer == 'Y' || answer == 'y')
 				{
 					strcpy(selected.name, newname);
-					saveGame(selected);
+					while(saveGame(selected)); // try save until return 0
 					printf("Save renamed.\n");
 					sleep(1);
 				}
@@ -542,7 +560,7 @@ PlayerState loadMenu(void) {
 
 			char answer;
 			/** confirm choice **/
-			printf("\nWould you like to start a game in slot %d? Y/N\n", selected.slot);
+			printf("\nWould you like to start a game in slot %d? [Y/N]\n", selected.slot);
 			do{
 				printf(">");
 				scanf(" %c", &answer);
@@ -560,8 +578,8 @@ PlayerState loadMenu(void) {
 				selected.gold = 0;
 				selected.healthpotions = 1;
 				selected.manapotions = 1;
-				selected = initPlayer(selected);
-				saveGame(selected);
+				initPlayer(selected);
+				while(saveGame(selected)); // try save until return 0
 				return selected;
 			}
 		}
@@ -573,43 +591,46 @@ PlayerState loadMenu(void) {
 /**
  * Clears save slot.
  */
-void deleteSave(PlayerState savegame){
+int deleteSave(Player& savegame) {
 	char filename[10];
-	FILE *delete;
+	FILE *d;
+	int r;
 	sprintf(filename, "save%d.txt", savegame.slot); /** create filename string **/
 
 
-	delete = fopen(filename, "w");  /** open and empty the file **/
+	d = fopen(filename, "w");  /** open and empty the file **/
 
-	fprintf(delete, "null 0 0 0 0\n");      /** output "null player" (deleted) **/
+	r = fprintf(d, "null 0 0 0 0\n");      /** output "null player" (deleted) **/
 
-	fclose(delete); /** close file **/
-	return;
+	fclose(d); /** close file **/
+	return r;
 }
 
 /**
  * Saves game state to slot.
  */
-void saveGame(PlayerState savegame){
+int saveGame(Player& savegame) {
 	char filename[10];
 	FILE *save;
+	int r;
 	sprintf(filename, "save%d.txt", savegame.slot); /** create filename string **/
 
 
 	save = fopen(filename, "w");    /** open and empty the save file **/
 
 	/** output player info **/
-	fprintf(save, "%s %d %d %d %d\n", savegame.name, savegame.level, savegame.gold, savegame.healthpotions, savegame.manapotions);
+	r = fprintf(save, "%s %d %d %d %d\n", savegame.name, savegame.level, savegame.gold, savegame.healthpotions, savegame.manapotions);
 
 	fclose(save);   /** close file **/
-	return;
+	return r;
 }
+
 /**
  * Gets random enemy from file
  */
-Enemy parseEnemy(int playerlevel){
+Enemy parseEnemy(int playerlevel) {
 
-	Enemy enemies[ENEMIES];         /** create array of all enemies**/
+	Enemy enemies[NUM_ENEMIES];         /** create array of all enemies**/
 	Enemy enemy;
 
 	FILE *enemyfile;
@@ -617,11 +638,11 @@ Enemy parseEnemy(int playerlevel){
 	enemyfile = fopen("enemies.txt", "r+");
 
 
-	for(i = 0; i < ENEMIES; i++){   /** loops through each enemy**/
+	for(i = 0; i < NUM_ENEMIES; i++){   /** loops through each enemy**/
 		int x;
 		fscanf(enemyfile, "%[^.]. ", enemies[i].name);
 
-		for(x = 0; x < ATTACKS; x++){   /**loops through each attack**/
+		for(x = 0; x < NUM_ATTACKS; x++){   /**loops through each attack**/
 			fscanf(enemyfile, "%[^,], ", enemies[i].attacks[x]);
 		}
 		fscanf(enemyfile, "\n");
@@ -630,7 +651,7 @@ Enemy parseEnemy(int playerlevel){
 
 	/** select and initialize random enemy **/
 
-	enemy = enemies[rand()%ENEMIES];
+	enemy = enemies[rand()%NUM_ENEMIES];
 	enemy.level = rand()%4+(playerlevel-2);		/** enemy level 2 above or below player level **/
 	if(enemy.level <1){
 		enemy.level=1;
@@ -648,41 +669,30 @@ Enemy parseEnemy(int playerlevel){
 /**
  * Loads and returns a save state from file. Returns save state.
  */
-PlayerState parseSave(int saveselect){
-	PlayerState player;
+int parseSave(Player& player){
 	FILE * temp;
-
+	int r;
 	char filename[10];
-	sprintf(filename, "save%d.txt", saveselect);
+	sprintf(filename, STR_SAVEFILE, player.slot);
 
 
 	temp = fopen(filename, "r+");
 
-	fscanf(temp, "%s %d %d %d %d", player.name, &player.level, &player.gold, &player.healthpotions, &player.manapotions);
+	r = fscanf(temp, "%s %d %d %d %d", player.name, &player.level, &player.gold, &player.healthpotions, &player.manapotions);
 
 	fclose(temp);
 
-	return player;
-}
-
-/*
- * Print line break
- */
-void br(){
-	printf("-----------------------------------------------------------------------------\n");
-	return;
+	return r;
 }
 
 /*
  * Initialize player values
  */
-PlayerState initPlayer(PlayerState player){
+void initPlayer(Player& player){
 	player.maxhealth = (2*player.level)+4;			/** 2x + 4 **/
 	player.health = player.maxhealth;
 	player.maxmana = floor(player.level/5)+2;		/** x/5 + 2 **/
 	player.mana = player.maxmana;
 	player.mindamage = floor(player.level/3)+1;		/** x/3 + 1 **/
 	player.maxdamage = 2*ceil(player.level/3)+2;;	/** 2x/3 + 2 **/
-	return player;
 }
-
